@@ -1,9 +1,7 @@
 # Changelog
 
-## 0.0.1 - 202x-xx-xx
+## 0.0.1 - 2021-08-27
 
 ### Added
 
-### Changed
-
-### Removed
+- Either
