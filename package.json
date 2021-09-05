@@ -1,7 +1,7 @@
 {
   "name": "@nkp/either",
   "sideEffects": false,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Either represents a value of one of two possible types",
   "main": "cjs/index.js",
   "module": "es/index.js",

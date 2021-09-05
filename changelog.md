@@ -7,11 +7,11 @@
 - Version compatibility types - `LeftLike`, `RightLike`, `EitherLike`
 - Improve type narrowing
 - Comprehensive tests and type tests
-- Updated project configuration
 
 ### Updated
 
 - readme.md
+- Updated project configuration
 
 ## 0.0.1 - 2021-08-27
 
