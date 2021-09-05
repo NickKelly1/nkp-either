@@ -392,3 +392,10 @@ export const Either = {
     return new EitherKind(LEFT, lval) as any; // Left<L> as DefiniteLeft<L>;
   },
 };
+
+export const isLeft = Either.isLeft;
+export const isRight = Either.isRight;
+export const left = Either.left;
+export const right = Either.right;
+export const fromLeft = Either.fromLeft;
+export const fromRight = Either.fromRight;

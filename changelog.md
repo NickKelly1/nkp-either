@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.3 - 2021-09-05
+
+### Added
+
+- Export `isLeft`
+- Export `isRight`
+- Export `left`
+- Export `right`
+- Export `fromLeft`
+- Export `fromRight`
+
 ## 0.0.2 - 2021-09-04
 
 ### Added
