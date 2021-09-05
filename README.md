@@ -1,6 +1,6 @@
 # @nkp/either
 
-![npm version](https://badge.fury.io/js/%40nkp%2Feither.svg)
+[![npm version](https://badge.fury.io/js/%40nkp%2Feither.svg)](https://www.npmjs.com/package/@nkp/either)
 [![Node.js Package](https://github.com/NickKelly1/nkp-either/actions/workflows/release.yml/badge.svg)](https://github.com/NickKelly1/nkp-either/actions/workflows/release.yml)
 ![Known Vulnerabilities](https://snyk.io/test/github/NickKelly1/nkp-either/badge.svg)
 
