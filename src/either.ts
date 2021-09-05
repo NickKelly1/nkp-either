@@ -1,32 +1,47 @@
+/* eslint-disable max-len */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-export enum EitherTag {
-  Left = 'left',
-  Right = 'right',
+export type LEFT = 'left';
+export const LEFT: LEFT = 'left';
+
+export type RIGHT = 'right';
+export const RIGHT: RIGHT = 'right';
+
+// compatibility types
+export interface EitherKindLike<R, L> {
+  readonly value: L | R;
+  readonly tag: LEFT | RIGHT;
+  isLeft(): this is DefiniteLeftLike<L>;
+  isRight(): this is DefiniteRightLike<R>;
+  readonly zL: L;
+  readonly zR: R;
 }
+export type LeftValue<T extends EitherKindLike<unknown, unknown>> = T['zL'];
+export type RightValue<T extends EitherKindLike<unknown, unknown>> = T['zR'];
+export type TagValue<T extends EitherKindLike<unknown, unknown>> = T['tag'];
 
-export type LeftValue<T extends EitherBase<unknown, unknown>> = T['zL'];
-export type RightValue<T extends EitherBase<unknown, unknown>> = T['zR'];
+export interface LeftLike<L> extends EitherKindLike<never, L> { readonly tag: LEFT; readonly value: L; }
+export interface RightLike<R> extends EitherKindLike<R, never> { readonly tag: RIGHT; readonly value: R; }
+export type MaybeEitherLike<R, L> = LeftLike<L> | RightLike<R>;
+export type DefiniteLeftLike<L> = L extends never ? never : LeftLike<L>
+export type DefiniteRightLike<R> = R extends never ? never : RightLike<R>
+export type EitherLike<R, L> = DefiniteRightLike<R> | DefiniteLeftLike<L> ;
 
-export interface Left<L> extends EitherBase<never, L> {
-  tag: EitherTag;
-  unwrap(): L;
-}
+export interface Left<L> extends EitherKind<never, L> { readonly tag: LEFT; readonly value: L; }
+export interface Right<R> extends EitherKind<R, never> { readonly tag: RIGHT; readonly value: R; }
+export type MaybeEither<R, L> = Left<L> | Right<R>;
+export type DefiniteLeft<L> = L extends never ? never : Left<L>;
+export type DefiniteRight<R> = R extends never ? never : Right<R>;
+export type Either<R, L> = | DefiniteRight<R> | DefiniteLeft<L>;
 
-export interface Right<R> extends EitherBase<R, never> {
-  tag: EitherTag;
-  unwrap(): R;
-}
-
-export type Either<R, L> = Right<R> | Left<L>;
-
-export class EitherBase<R, L> {
+export class EitherKind<R, L> implements EitherKindLike<R, L> {
   // virtual values
   readonly zR!: R;
   readonly zL!: L;
 
-  constructor(tag: EitherTag.Left, value: L)
-  constructor(tag: EitherTag.Right, value: R)
-  constructor(readonly tag: EitherTag, protected readonly value: L | R) {
+  constructor(tag: LEFT, value: L)
+  constructor(tag: RIGHT, value: R)
+  constructor(readonly tag: LEFT | RIGHT, public readonly value: L | R) {
     //
   }
 
@@ -37,7 +52,7 @@ export class EitherBase<R, L> {
    * @returns
    */
   unwrapLeft(): L {
-    if (this.isRight()) throw new TypeError('Failed to unwrap left: Either is Right');
+    if (this.isRight()) throw new TypeError('Failed to unwrapLeft: Either is Right');
     return this.value as L;
   }
 
@@ -46,18 +61,9 @@ export class EitherBase<R, L> {
    *
    * @returns
    */
-  unwrapRight(): R {
-    if (this.isLeft()) throw new TypeError('Failed to unwrap left: Either is Left');
+  unwrap(): R {
+    if (this.isLeft()) throw new TypeError('Failed to unwrap: Either is Left');
     return this.value as R;
-  }
-
-  /**
-   * Get the value
-   *
-   * @returns
-   */
-  unwrap(): L | R {
-    return this.value;
   }
 
   /**
@@ -65,8 +71,8 @@ export class EitherBase<R, L> {
    *
    * @returns
    */
-  isLeft(): this is Left<L> {
-    return this.tag === EitherTag.Left;
+  isLeft(): this is DefiniteLeft<L> {
+    return this.tag === LEFT;
   }
 
   /**
@@ -74,8 +80,8 @@ export class EitherBase<R, L> {
    *
    * @returns
    */
-  isRight(): this is Right<R> {
-    return this.tag === EitherTag.Right;
+  isRight(): this is DefiniteRight<R> {
+    return this.tag === RIGHT;
   }
 
   /**
@@ -85,11 +91,15 @@ export class EitherBase<R, L> {
    * @param onLeft
    * @returns
    */
-  bimap<NR, NL>(onRight: (rval: R) => NR, onLeft: (lval: L) => NL): Either<NR, NL> {
+  bimap<NR, NL>(onRight: (rval: R) => NR, onLeft: (lval: L) => NL):
+    this extends RightLike<R> ? DefiniteRight<NR>
+    : this extends LeftLike<L> ? DefiniteLeft<NL>
+    : Either<NR, NL>
+  {
     if (this.isRight()) {
-      return Either.right(onRight(this.value as R));
+      return Either.right(onRight(this.value as R)) as any;
     }
-    return Either.left(onLeft(this.value as L));
+    return Either.left(onLeft(this.value as L)) as any;
   }
 
   /**
@@ -98,11 +108,15 @@ export class EitherBase<R, L> {
    * @param onRight
    * @returns
    */
-  map<NR>(onRight: (rval: R) => NR): Either<NR, L> {
+  map<NR>(onRight: (rval: R) => NR):
+    this extends RightLike<R> ? DefiniteRight<NR>
+    : this extends LeftLike<L> ? DefiniteLeft<L>
+    : Either<NR, L>
+  {
     if (this.isRight()) {
-      return Either.right(onRight(this.value as R));
+      return Either.right(onRight(this.value as R)) as any;
     }
-    return this as unknown as Left<L>;
+    return this as unknown as DefiniteLeft<L> as any;
   }
 
   /**
@@ -111,11 +125,15 @@ export class EitherBase<R, L> {
    * @param onLeft
    * @returns
    */
-  mapLeft<NL>(onLeft: (lval: L) => NL): Either<R, NL> {
+  mapLeft<NL>(onLeft: (lval: L) => NL):
+    this extends RightLike<R> ? DefiniteRight<R>
+    : this extends LeftLike<L> ? DefiniteLeft<NL>
+    : Either<R, NL>
+  {
     if (this.isLeft()) {
-      return Either.left(onLeft(this.value as L));
+      return Either.left(onLeft(this.value as L)) as any;
     }
-    return this as unknown as Right<R>;
+    return this as unknown as DefiniteRight<R> as any;
   }
 
   /**
@@ -124,14 +142,17 @@ export class EitherBase<R, L> {
    * @param onRight
    * @returns
    */
-  flatMap<NR, NL>(onRight: (rval: R) => Right<NR>): Either<NR, L>;
-  flatMap<NR, NL>(onRight: (rval: R) => Left<NL>): Left<L | NL>;
-  flatMap<NR, NL>(onRight: (rval: R) => Either<NR, NL>): Either<NR, L | NL>;
-  flatMap<NR, NL>(onRight: (rval: R) => Either<NR, NL>): Either<NR, L | NL> {
+  flatMap<E extends EitherLike<unknown, unknown>>(onRight: (rval: R) => E):
+    this extends RightLike<R> ? Either<RightValue<E>, LeftValue<E>>
+    : this extends LeftLike<L> ? DefiniteLeft<L>
+    : Either<RightValue<E>, LeftValue<E> | L>
+  {
     if (this.isRight()) {
-      return onRight(this.value as R);
+      const inner = onRight(this.value);
+      if (inner.isRight()) return Either.right(inner.value) as any;
+      return Either.left((inner).value) as any;
     }
-    return this as unknown as Left<L>;
+    return this as unknown as DefiniteLeft<L>;
   }
 
   /**
@@ -140,14 +161,17 @@ export class EitherBase<R, L> {
    * @param onLeft
    * @returns
    */
-  flatMapLeft<NR, NL>(onLeft: (lval: L) => Right<NR>): Right<R | NR>;
-  flatMapLeft<NR, NL>(onLeft: (lval: L) => Left<NL>): Either<R, NL>;
-  flatMapLeft<NR, NL>(onLeft: (lval: L) => Either<NR, NL>): Either<R | NR, NL>;
-  flatMapLeft<NR, NL>(onLeft: (lval: L) => Either<NR, NL>): Either<R | NR, NL> {
+  flatMapLeft<E extends EitherLike<unknown, unknown>>(onLeft: (lval: L) => E):
+    this extends RightLike<R> ? DefiniteRight<R>
+    : this extends LeftLike<L> ? Either<RightValue<E>, LeftValue<E>>
+    :  Either<RightValue<E> | R, LeftValue<E>>
+  {
     if (this.isLeft()) {
-      return onLeft(this.value as L);
+      const inner = onLeft(this.value);
+      if (inner.isRight()) return Either.right(inner.value) as any;
+      return Either.left(inner.value) as any;
     }
-    return this as unknown as Right<R>;
+    return this as any;
   }
 
   /**
@@ -155,12 +179,10 @@ export class EitherBase<R, L> {
    *
    * @param onLeft
    * @returns
-   *
-   * If RightValue is never, we the callee decide what RightValue becomes
    */
-  orElse<NR = RightValue<this>>(onLeft: (lval: L) => NR): Right<NR | R> {
-    if (this.isRight()) return this;
-    return Either.right(onLeft(this.value as L));
+  orElse<NR>(onLeft: (lval: L) => NR): Right<NR | R> {
+    if (this.isRight()) return this as any;
+    return Either.right(onLeft(this.value as L)) as any;
   }
 
   /**
@@ -168,25 +190,92 @@ export class EitherBase<R, L> {
    *
    * @param this
    * @returns
-   *
-   * Generic NL causes TS to union this left value with the mapped left value
    */
-  flat<NR, NL = LeftValue<this>>(this: Either<Either<NR, NL>, NL>): Either<NR, NL> {
-    if (this.isLeft()) return this;
-    return this.value as Either<NR, NL>;
+  flat():
+    this extends RightLike<RightLike<any>> ? DefiniteRight<RightValue<RightValue<this>>>
+    : this extends RightLike<LeftLike<any>> ? DefiniteLeft<LeftValue<RightValue<this>>>
+    : this extends RightLike<EitherLike<any, any>> ? Either<RightValue<RightValue<this>>, LeftValue<RightValue<this>>>
+    : this extends LeftLike<L> ? DefiniteLeft<L>
+    : Either<R, L>
+  {
+    if (this.isLeft()) return this as any;
+    return this.value as any;
   }
 
   /**
-   * Flatten the left-side of the either
+   * Fire a side-effect on the right-value
    *
-   * @param this
+   * @param onRight
    * @returns
-   *
-   * Generic NR causes TS to union this left value with the mapped right value
    */
-  flatLeft<NL, NR = RightValue<this>>(this: Either<NR, Either<NR, NL>>): Either<NR, NL> {
-    if (this.isRight()) return this;
-    return this.value as Either<NR, NL>;
+  tap(onRight: (value: R) => unknown): this {
+    if (this.isRight()) onRight(this.value);
+    return this;
+  }
+
+  /**
+   * Fire a side-effect on the left-value
+   *
+   * @param onLeft
+   * @returns
+   */
+  tapLeft(onLeft: (value: L) => unknown): this {
+    if (this.isLeft()) onLeft(this.value);
+    return this;
+  }
+
+  /**
+   * Fire a side-effect on both sides
+   *
+   * @param onRight
+   * @param onLeft
+   * @returns
+   */
+  bitap(onRight: (value: R) => unknown, onLeft: (value: L) => unknown): this {
+    if (this.isRight()) onRight(this.value);
+    else onLeft(this.value as L);
+    return this;
+  }
+
+  /**
+   * Fire a side-effect on the Either
+   *
+   * @param callbackfn
+   * @returns
+   */
+  tapSelf(callbackfn: (self: this) => unknown): this {
+    callbackfn(this);
+    return this;
+  }
+
+  /**
+   * Map the Either to some other value
+   *
+   * @param callbackfn
+   * @returns
+   */
+  mapSelf<R>(callbackfn: (self: this) => R): R {
+    return callbackfn(this);
+  }
+
+  /**
+   * If isLeft, throw on the value
+   *
+   * @returns
+   */
+  throwLeft(): DefiniteRight<R> {
+    if (this.isLeft()) throw this.value;
+    return this as unknown as DefiniteRight<R>;
+  }
+
+  /**
+   * If isLeft, throw on the value
+   *
+   * @returns
+   */
+  throwRight(): DefiniteLeft<L> {
+    if (this.isRight()) throw this.value;
+    return this as unknown as DefiniteLeft<L>;
   }
 
   /**
@@ -195,8 +284,8 @@ export class EitherBase<R, L> {
    * @returns
    */
   swap(): Either<L, R> {
-    if (this.isRight()) return Either.left(this.value as R);
-    return Either.right(this.value as L);
+    if (this.isRight()) return Either.left(this.value as R) as any;
+    return Either.right(this.value as L) as any;
   }
 }
 
@@ -207,7 +296,7 @@ export const Either = {
    * @param either
    * @returns
    */
-  isLeft<R, L>(either: Either<R, L>): either is Left<L> {
+  isLeft<R, L>(either: Either<R, L>): either is DefiniteLeft<L> {
     return either.isLeft();
   },
 
@@ -217,28 +306,8 @@ export const Either = {
    * @param either
    * @returns
    */
-  isRight<R, L>(either: Either<R, L>): either is Right<R> {
+  isRight<R, L>(either: Either<R, L>): either is DefiniteRight<R> {
     return either.isRight();
-  },
-
-  /**
-   * Create an Either from the right value
-   *
-   * @param value
-   * @returns
-   */
-  from<R, L>(value: R): Either<R, L> {
-    return Either.right(value);
-  },
-
-  /**
-   * Create an Either from the left value
-   *
-   * @param value
-   * @returns
-   */
-  fromLeft<R, L>(value: L): Either<R, L> {
-    return Either.left(value);
   },
 
   /**
@@ -252,7 +321,7 @@ export const Either = {
    */
   fromNull<R>(value: R | null): Either<R, null> {
     if (value === null) return Either.left(null);
-    return Either.right(value);
+    return Either.right(value) as Either<R, null>;
   },
 
   /**
@@ -265,8 +334,8 @@ export const Either = {
    * @returns
    */
   fromNullable<R>(value: R | null | undefined): Either<R, null | undefined> {
-    if (value == null) return Either.left(value as null | undefined);
-    return Either.right(value);
+    if (value == null) return Either.left(value as null | undefined) as Either<R, null | undefined>;
+    return Either.right(value) as Either<R, null | undefined>;
   },
 
   /**
@@ -278,8 +347,28 @@ export const Either = {
    * @returns
    */
   fromTruthy<R>(value: R): Either<R, R> {
-    if (value) return Either.right(value);
-    return Either.left(value);
+    if (value) return Either.right(value) as Either<R,R>;
+    return Either.left(value) as Either<R, R>;
+  },
+
+  /**
+   * Create an Either (Right) from the value
+   *
+   * @param rval
+   * @returns
+   */
+  fromRight<R, L>(rval: R): Either<R, L> {
+    return Either.right(rval) as Either<R, L>;
+  },
+
+  /**
+   * Create an Either (Left) from the value
+   *
+   * @param lval
+   * @returns
+   */
+  fromLeft<R, L>(lval: L): Either<R, L> {
+    return Either.left(lval) as Either<R, L>;
   },
 
   /**
@@ -288,17 +377,18 @@ export const Either = {
    * @param rval
    * @returns
    */
+  // right<R>(rval: R): DefiniteRight<R> {
   right<R>(rval: R): Right<R> {
-    return new EitherBase(EitherTag.Right, rval) as Right<R>;
+    return new EitherKind(RIGHT, rval) as any;
   },
 
   /**
-   * Create an Left from the value
+   * Create a Left from the value
    *
    * @param lval
    * @returns
    */
   left<L>(lval: L): Left<L> {
-    return new EitherBase(EitherTag.Left, lval) as Left<L>;
+    return new EitherKind(LEFT, lval) as any; // Left<L> as DefiniteLeft<L>;
   },
 };
